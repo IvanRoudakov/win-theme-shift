@@ -34,5 +34,25 @@ int main() {
     }
 
     std::cout<<"Current theme is:"<<((IsLightMode(hkey)) ? "dark" : "light") <<"\n";
+    
+
+    while (true) {
+        lResult = RegNotifyChangeKeyValue(
+            hkey,
+            FALSE,
+            REG_NOTIFY_CHANGE_LAST_SET,
+            nullptr,
+            FALSE
+        );
+
+        if (lResult != ERROR_SUCCESS) {
+            std::cerr<<"Reg notify failed: "<<lResult<<"\n";
+            break;
+        }
+        
+        std::cout<<"Theme changed: "<<((IsLightMode(hkey)) ? "dark" : "light") <<"\n";
+    }
+
+    RegCloseKey(hkey);
     return 0;
 }
