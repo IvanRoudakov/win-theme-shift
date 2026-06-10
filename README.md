@@ -12,3 +12,4 @@ MSVC (Build tools for Visual Studio or Visual Studio itself)
 
 Run `cl.exe /EHsc main.cpp /Fe:win-theme-shift.exe /link advapi32.lib`
  
+*Et voila!*
