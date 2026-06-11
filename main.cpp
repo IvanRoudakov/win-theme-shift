@@ -4,8 +4,7 @@
 #include <stdexcept>
 #include <fstream>
 #include <optional>
-
-#define CONFIG_FILE_PATH ".\\config.conf"
+#include <filesystem>
 
 // Globals
 HANDLE g_shutdownEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -105,8 +104,16 @@ BOOL ChangeWallpaper(std::wstring path) {
     );
 }
 
+std::filesystem::path GetConfigPath() {
+    wchar_t path[FILENAME_MAX] = {0};
+    GetModuleFileNameW(nullptr, path, FILENAME_MAX);
+    return std::filesystem::path(path).parent_path().append(L"config.conf");
+}
+
 int main() {
-    std::wifstream ifstream(CONFIG_FILE_PATH);
+    std::filesystem::path configFilePath = GetConfigPath();
+
+    std::wifstream ifstream(configFilePath);
 
     WallpaperPath wallpaperPath;
 
@@ -265,7 +272,7 @@ int main() {
     CloseHandle(g_shutdownEvent);
     CloseKeys(hKeyTheme, hKeyWallpaper);
 
-    std::wofstream ofstream(CONFIG_FILE_PATH);
+    std::wofstream ofstream(configFilePath);
 
     if (!ofstream.is_open()) {
         std::cerr<<"Can't write file";
