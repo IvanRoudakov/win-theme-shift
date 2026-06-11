@@ -8,11 +8,13 @@
       "args": [
         "/Zi",
         "/EHsc",
+        "/std:c++17",
         "/Fe:",
         "${fileDirname}\\${fileBasenameNoExtension}.exe",
         "${file}",
         "/link",
-        "advapi32.lib"
+        "advapi32.lib",
+        "user32.lib"
       ],
       "problemMatcher": ["$msCompile"],
       "group": {
