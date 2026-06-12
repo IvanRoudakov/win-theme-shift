@@ -5,6 +5,7 @@
 #include <fstream>
 #include <optional>
 #include <filesystem>
+#include <sstream>
 
 // Globals
 HANDLE g_shutdownEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -95,7 +96,7 @@ void CloseKeys(HKEY hKeyTheme, HKEY hKeyWallpaper) {
     RegCloseKey(hKeyWallpaper);
 }
 
-BOOL ChangeWallpaper(std::wstring path) {
+inline BOOL ChangeWallpaper(std::wstring path) {
     return SystemParametersInfoW(
         SPI_SETDESKWALLPAPER,
         0,
@@ -108,6 +109,33 @@ std::filesystem::path GetConfigPath() {
     wchar_t path[FILENAME_MAX] = {0};
     GetModuleFileNameW(nullptr, path, FILENAME_MAX);
     return std::filesystem::path(path).parent_path().append(L"config.conf");
+}
+
+HKEY WrapperRegKeyOpen(LPCWSTR subKey) throw(RegKeyFailureException) {
+    HKEY hkey = nullptr;
+    LONG lResult = RegOpenKeyExW(
+        HKEY_CURRENT_USER,
+        subKey,
+        0,
+        KEY_NOTIFY | KEY_READ,
+        &hkey
+    );
+    if (lResult != ERROR_SUCCESS) {
+        std::ostringstream sstream("Failed to open key with result: ");
+        sstream<<lResult;
+        throw RegKeyFailureException(sstream.str());
+    }
+    return hkey;
+}
+
+inline LONG WrapperSetNotifier(HKEY hkey, HANDLE hEvent) {
+    return RegNotifyChangeKeyValue(
+            hkey,
+            FALSE,
+            REG_NOTIFY_CHANGE_LAST_SET,
+            hEvent,
+            TRUE
+        );
 }
 
 int main() {
@@ -139,26 +167,19 @@ int main() {
         return 1;
     }
 
-    LONG lResult = RegOpenKeyExW(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-        0,
-        KEY_NOTIFY | KEY_READ,
-        &hKeyTheme
-    );
-
-    if (lResult != ERROR_SUCCESS) {
-        std::cerr<<"Failed to open registry key for theme "<<lResult<<"\n";
+    try {
+        hKeyTheme = WrapperRegKeyOpen(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+    } catch (RegKeyFailureException exception) {
+        std::cerr<<"Failed to open registry key for theme "<<exception.what()<<"\n";
         return 1;
     }
 
-    lResult = RegOpenKeyExW(
-        HKEY_CURRENT_USER,
-        L"Control Panel\\Desktop",
-        0,
-        KEY_NOTIFY | KEY_READ,
-        &hKeyWallpaper
-    );
+    try {
+        hKeyWallpaper = WrapperRegKeyOpen(L"Control Panel\\Desktop");
+    } catch (RegKeyFailureException exception) {
+        std::cerr<<"Failed to open registry key for theme "<<exception.what()<<"\n";
+        return 1;
+    }
 
     bool isDarkCurrent = false;
     std::wstring currentWallPaper;
@@ -186,26 +207,14 @@ int main() {
     HANDLE handles[] = {hEventTheme, g_shutdownEvent, hEventWallpaper};
 
     while (true) {
-        lResult = RegNotifyChangeKeyValue(
-            hKeyTheme,
-            FALSE,
-            REG_NOTIFY_CHANGE_LAST_SET,
-            hEventTheme,
-            TRUE
-        );
+        LONG lResult = WrapperSetNotifier(hKeyTheme, hEventTheme);
 
         if (lResult != ERROR_SUCCESS) {
             std::cerr<<"Reg notify failed: "<<lResult<<"\n";
             break;
         }
 
-        lResult = RegNotifyChangeKeyValue(
-            hKeyWallpaper,
-            FALSE,
-            REG_NOTIFY_CHANGE_LAST_SET,
-            hEventWallpaper,
-            TRUE
-        );
+        lResult = WrapperSetNotifier(hKeyWallpaper, hEventWallpaper);
 
         if (lResult != ERROR_SUCCESS) {
             std::cerr<<"Reg notify failed: "<<lResult<<"\n";
