@@ -10,9 +10,13 @@ MSVC (Build tools for Visual Studio or Visual Studio itself) that supports C++ 1
 
 ### Executable compilation
 
-Run `cl.exe /EHsc /std:c++17 main.cpp /Fe:win-theme-shift.exe /link advapi32.lib user32.lib`
+Run 
+```batch
+cmake -S . -B build
+cmake --build build --config Release
+```
  
-*Et voila!*
+*Et voila!* App is in build\Release folder.
 
 ## Usage
 
