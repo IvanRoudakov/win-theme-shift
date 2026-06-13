@@ -30,7 +30,6 @@ jobs:
 
           New-Item -ItemType Directory -Force package
           Copy-Item "build/Release/win-theme-shift.exe" "package/"
-            -Force
 
           Compress-Archive -Path package/* -DestinationPath "win-theme-shift-$version.zip"
 
