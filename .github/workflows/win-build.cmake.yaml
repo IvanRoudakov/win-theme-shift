@@ -29,15 +29,10 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force package
-          Copy-Item `
-            "build/Release/win-theme-shift.exe"
-            "package/" `
+          Copy-Item "build/Release/win-theme-shift.exe" "package/"
             -Force
 
-          Compress-Archive `
-           -Path package/*
-           -DestinationPath "win-theme-shift-$version.zip" `
-           -Force
+          Compress-Archive -Path package/* -DestinationPath "win-theme-shift-$version.zip"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
