@@ -2,6 +2,10 @@
 
 Simple app for handling if user changes their theme from light mode to dark and vice versa
 
+## Instalation
+
+Download archive from [Releases page](https://github.com/IvanRoudakov/win-theme-shift/releases) and extract to separate folder.
+
 ## Build
 
 ### Requirements
