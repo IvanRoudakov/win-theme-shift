@@ -6,6 +6,9 @@
 #include <optional>
 #include <filesystem>
 #include <sstream>
+#include <fcntl.h>
+#include <io.h>
+#include <codecvt>
 
 // Globals
 HANDLE g_shutdownEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -139,9 +142,19 @@ inline LONG WrapperSetNotifier(HKEY hkey, HANDLE hEvent) {
 }
 
 int main() {
+    SetConsoleOutputCP(CP_UTF8);
+    
+    _setmode(_fileno(stdout), _O_U16TEXT);
+
+    std::wcerr<<"Err msg L\n";
+
     std::filesystem::path configFilePath = GetConfigPath();
 
     std::wifstream ifstream(configFilePath);
+
+    const std::codecvt_utf8<wchar_t> codeCvt;
+
+    ifstream.imbue(std::locale(ifstream.getloc(), &codeCvt));
 
     WallpaperPath wallpaperPath;
 
@@ -193,8 +206,8 @@ int main() {
         return 1;
     }
 
-    std::cout<<"Current theme is: "<<((isDarkCurrent) ? "dark" : "light") <<"\n";
-    std::wcout<<"Current walpaper is"<<currentWallPaper<<L"\n";
+    std::wcout<<L"Current theme is: "<<((isDarkCurrent) ? L"dark\n" : L"light\n");
+    std::wcout<<L"Current walpaper is: "<<currentWallPaper<<L"\n";
 
     if (isDarkCurrent) {
         wallpaperPath.darkPath = currentWallPaper;
@@ -229,7 +242,7 @@ int main() {
         );
 
         if (WAIT_OBJECT_0 + 1 == waitResult) {
-            std::cout<<"Bye...\n";
+            std::wcout<<L"Bye...\n";
             break;
         }
 
@@ -238,7 +251,7 @@ int main() {
                 bool isDarkNew = IsLightMode(hKeyTheme);
                 if (isDarkCurrent != isDarkNew) {
                     isDarkCurrent = isDarkNew;
-                    std::cout<<"Theme changed to: "<<((isDarkCurrent) ? "dark\n" : "light\n");
+                    std::wcout<<L"Theme changed to: "<<((isDarkCurrent) ? L"dark\n" : L"light\n");
                     if(isDarkCurrent && wallpaperPath.darkPath.has_value()) {
                         if (!ChangeWallpaper(wallpaperPath.darkPath.value())) {
                             std::cerr<<"Failed to update wallpaper";
@@ -282,6 +295,8 @@ int main() {
     CloseKeys(hKeyTheme, hKeyWallpaper);
 
     std::wofstream ofstream(configFilePath);
+
+    ofstream.imbue(std::locale(ofstream.getloc(), &codeCvt));
 
     if (!ofstream.is_open()) {
         std::cerr<<"Can't write file";
