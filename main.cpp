@@ -205,7 +205,6 @@ int main() {
     WallpaperPath wallpaperPath;
 
     if (ifstream.is_open()) {
-        // std::wstring line;
         std::string line;
         while (std::getline(ifstream, line)) {
             std::wstring wline = StringToWideString(line);
@@ -341,7 +340,7 @@ int main() {
     CloseHandle(hEventTheme);
     CloseHandle(g_shutdownEvent);
     CloseKeys(hKeyTheme, hKeyWallpaper);
-    
+
     std::ofstream ofstream(configFilePath, std::ios::binary);;
 
     if (!ofstream.is_open()) {
@@ -351,7 +350,6 @@ int main() {
 
     if (wallpaperPath.darkPath.has_value()) {
         wallpaperPath.darkPath.value().erase(wallpaperPath.darkPath.value().find_first_of(L'\0') + 1);
-        std::string unused = WideStringToString(wallpaperPath.darkPath.value());
         ofstream<<"Dark="<<WideStringToString(wallpaperPath.darkPath.value())<<"\n";
     }
 
