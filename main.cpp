@@ -8,7 +8,6 @@
 #include <sstream>
 #include <fcntl.h>
 #include <io.h>
-#include <codecvt>
 
 // Globals
 HANDLE g_shutdownEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
@@ -141,31 +140,79 @@ inline LONG WrapperSetNotifier(HKEY hkey, HANDLE hEvent) {
         );
 }
 
+std::string WideStringToString(std::wstring wstring) {
+    int size = WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        wstring.data(),
+        (int) wstring.size(),
+        nullptr,
+        0,
+        nullptr,
+        nullptr
+    );
+
+    std::string result(size, '\0');
+
+    WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        wstring.data(),
+        (int) wstring.size(),
+        result.data(),
+        size,
+        nullptr,
+        nullptr
+    );
+
+    return result;
+}
+
+std::wstring StringToWideString(std::string string) {
+    int size = MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        string.data(),
+        (int) string.size(),
+        nullptr,
+        0
+    );
+
+    std::wstring result(size, L'\0');
+
+    MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        string.data(),
+        (int) string.size(),
+        result.data(),
+        size
+    );
+
+    return result;
+}
+
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     
     _setmode(_fileno(stdout), _O_U16TEXT);
 
-    std::wcerr<<"Err msg L\n";
-
     std::filesystem::path configFilePath = GetConfigPath();
 
-    std::wifstream ifstream(configFilePath);
+    std::ifstream ifstream(configFilePath, std::ios::binary);
 
-    const std::codecvt_utf8<wchar_t> codeCvt;
-
-    ifstream.imbue(std::locale(ifstream.getloc(), &codeCvt));
 
     WallpaperPath wallpaperPath;
 
     if (ifstream.is_open()) {
-        std::wstring line;
+        std::string line;
         while (std::getline(ifstream, line)) {
-            if (line.find(L"Dark=") == 0) {
-                wallpaperPath.darkPath = line.substr(5, line.size());
+            std::wstring wline = StringToWideString(line);
+            if (wline.find(L"Dark=") == 0) {
+                wallpaperPath.darkPath = wline.substr(5, line.size());
             }
-            if (line.find(L"Light=") == 0) {
-                wallpaperPath.lightPath = line.substr(6, line.size());
+            if (wline.find(L"Light=") == 0) {
+                wallpaperPath.lightPath = wline.substr(6, line.size());
             }
         }
     }
@@ -294,9 +341,7 @@ int main() {
     CloseHandle(g_shutdownEvent);
     CloseKeys(hKeyTheme, hKeyWallpaper);
 
-    std::wofstream ofstream(configFilePath);
-
-    ofstream.imbue(std::locale(ofstream.getloc(), &codeCvt));
+    std::ofstream ofstream(configFilePath, std::ios::binary);;
 
     if (!ofstream.is_open()) {
         std::cerr<<"Can't write file";
@@ -305,12 +350,12 @@ int main() {
 
     if (wallpaperPath.darkPath.has_value()) {
         wallpaperPath.darkPath.value().erase(wallpaperPath.darkPath.value().find_first_of(L'\0') + 1);
-        ofstream<<L"Dark="<<wallpaperPath.darkPath.value()<<L"\n";
+        ofstream<<"Dark="<<WideStringToString(wallpaperPath.darkPath.value())<<"\n";
     }
 
     if (wallpaperPath.lightPath.has_value()) {
         wallpaperPath.lightPath.value().erase(wallpaperPath.lightPath.value().find_first_of(L'\0') + 1);
-        ofstream<<L"Light="<<wallpaperPath.lightPath.value()<<L"\n";
+        ofstream<<"Light="<<WideStringToString(wallpaperPath.lightPath.value())<<"\n";
     }
 
     ofstream.close();
